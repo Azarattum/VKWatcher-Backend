@@ -2,17 +2,36 @@
 Back end web application for collecting data.
 
 ## Features:
-  - More to come...
+  - Watches your friends online activity
 
 ### Usage:
-Start ts-node with *./src/index.ts* file as entry point:
-```sh
-ts-node ./src/index.ts
-```
-Or run vscode's "Launch Program" configuration.
+1) Put your [VK API Token](https://vk.com/dev/authcode_flow_user) into .env file. You may use example.env as a reference. You need "friends" and "offline" permissions for your application.
 
-### Installation: 
+2) Run the application:
+
+	**Option 1**: Using ts-node
+
+    1) Start ts-node with *./src/index.ts* file as entry point:
+    ```sh
+    ts-node ./src/index.ts
+    ```
+	Or run vscode's "Launch Program" configuration.
+
+	**Option 2**: Using node
+    1) Make sure that all sources was compiled using webpack into *./dist/bundle.js* (look **release** npm script).
+    2) Start the script using regular node:
+    ```sh
+    node ./dist/bundle.js
+    ```
+
+### Installation:
 Install all dependencies:
 ```sh
 npm install
 ```
+
+### NPM Scripts:
+| Script      | Description                                |
+| ----------- | ------------------------------------------ |
+| **release** | Creates a production build of the project  |
+| build       | Creates a development build of the project |

@@ -1,7 +1,17 @@
 {
-  "dependencies": {},
+  "scripts": {
+    "release": "node_modules/.bin/webpack-cli -p --progress",
+    "build": "node_modules/.bin/webpack-cli -d --progress"
+  },
+  "dependencies": {
+    "dotenv": "^8.2.0",
+    "request": "^2.88.0",
+    "request-promise-native": "^1.0.8"
+  },
   "devDependencies": {
+    "@types/dotenv": "^8.2.0",
     "@types/node": "^12.12.12",
+    "@types/request-promise-native": "^1.0.17",
     "@typescript-eslint/eslint-plugin": "^2.8.0",
     "@typescript-eslint/parser": "^2.8.0",
     "eslint": "^6.7.0",
@@ -10,7 +20,12 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "prettier": "^1.19.1",
+    "terser-webpack-plugin": "^2.3.1",
+    "ts-loader": "^6.2.1",
     "ts-node": "^8.5.4",
-    "typescript": "^3.7.2"
+    "typescript": "^3.7.4",
+    "webpack": "^4.41.5",
+    "webpack-cleanup-plugin": "^0.5.1",
+    "webpack-cli": "^3.3.10"
   }
 }
