@@ -66,8 +66,12 @@ export default class User {
 		//Find new users
 		for (const user of updatedUsers) {
 			const old = users.find(x => x.id == user.id);
-			if (!old && user.online) {
-				actions.push(new Action(user, ActionType.LOGGED_IN));
+			if (!old) {
+				actions.push(new Action(user, ActionType.CREATED));
+
+				if (user.online) {
+					actions.push(new Action(user, ActionType.LOGGED_IN));
+				}
 			}
 		}
 
@@ -102,5 +106,6 @@ export class Action {
 export enum ActionType {
 	UNCHANGED,
 	LOGGED_IN,
-	LOGGED_OUT
+	LOGGED_OUT,
+	CREATED
 }

@@ -5,13 +5,14 @@
   },
   "dependencies": {
     "dotenv": "^8.2.0",
-    "request": "^2.88.0",
-    "request-promise-native": "^1.0.8"
+    "request-promise-native": "^1.0.8",
+    "sqlite3": "^4.1.1"
   },
   "devDependencies": {
     "@types/dotenv": "^8.2.0",
     "@types/node": "^12.12.12",
     "@types/request-promise-native": "^1.0.17",
+    "@types/sqlite3": "^3.1.6",
     "@typescript-eslint/eslint-plugin": "^2.8.0",
     "@typescript-eslint/parser": "^2.8.0",
     "eslint": "^6.7.0",
