@@ -6,6 +6,7 @@ import Watcher from "./services/watcher.service";
 import Events from "./services/events.service";
 import Database from "./services/database.service";
 import Sessions from "./services/sessions.service";
+import Server from "./services/server.service";
 
 /**
  * Main application class
@@ -18,7 +19,13 @@ export default class App {
 	 * Note that the page should be already loaded
 	 */
 	public async initialize(): Promise<void> {
-		const components: IComponent[] = [Sessions, Watcher, Database, Events];
+		const components: IComponent[] = [
+			Sessions,
+			Watcher,
+			Database,
+			Server,
+			Events
+		];
 
 		this.manger = new Manager(components);
 		const args = await this.initializeArguments();

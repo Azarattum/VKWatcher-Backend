@@ -3,6 +3,8 @@ Back end web application for collecting data.
 
 ## Features:
   - Watches your friends online activity
+  - Creates sessions and saves them to the database
+  - Serves your static frontend at *./public/*
 
 ### Usage:
 1) Put your [VK API Token](https://vk.com/dev/authcode_flow_user) into .env file. You may use example.env as a reference. You need "friends" and "offline" permissions for your application.
@@ -23,6 +25,7 @@ Back end web application for collecting data.
     ```sh
     node ./dist/bundle.js
     ```
+3) Additionaly, you can create *./public* folder and put there your fontend part to be served.
 
 ### Installation:
 Install all dependencies:
