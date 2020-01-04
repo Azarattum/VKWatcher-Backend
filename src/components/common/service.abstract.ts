@@ -58,6 +58,10 @@ export default function Service<T extends string>() {
 				};
 			}
 		}
+
+		public static close(): void {
+			//Close the service
+		}
 	}
 
 	//Return service with specific typings

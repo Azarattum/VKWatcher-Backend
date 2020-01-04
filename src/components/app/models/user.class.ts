@@ -28,7 +28,7 @@ export default class User {
 	 * @param user Updated version of THE SAME user
 	 */
 	public compare(user: User): Action {
-		///Might be chaged for future functionality
+		//Might be chaged for future functionality
 		if (user.id != this.id) {
 			throw new Error("Cannot compare different users.");
 		}

@@ -46,6 +46,25 @@ export default class Sessions extends Service<"sessionfound">() {
 
 		this.sessions[user.id] = null;
 	}
+
+	/**
+	 * Close all sessions and emit leftover events
+	 */
+	public static close(): void {
+		const now = new Date();
+
+		for (const session of Object.values(this.sessions)) {
+			if (!session) continue;
+
+			//If session is longer than 5min
+			if (+now - +session.from > 300000) {
+				//Close session with current time
+				session.to = now;
+				this.call("sessionfound", session);
+				this.sessions[session.userId] = null;
+			}
+		}
+	}
 }
 
 export interface ISession {

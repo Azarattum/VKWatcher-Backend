@@ -53,4 +53,15 @@ export default class Watcher extends Service<
 
 		this.users = users;
 	}
+
+	/**
+	 * Stops the timer and closes the watcher
+	 */
+	public static close(): void {
+		if (!this.timer) return;
+
+		clearInterval(this.timer);
+		this.timer = null;
+		this.users = null;
+	}
 }

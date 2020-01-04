@@ -66,4 +66,11 @@ export default class Database extends Service<"">() {
 			$to: session.to
 		});
 	}
+
+	/**
+	 * Safly stop and close the database
+	 */
+	public static close(): void {
+		this.database.close();
+	}
 }

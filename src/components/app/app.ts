@@ -45,4 +45,27 @@ export default class App {
 			Watcher: [api]
 		};
 	}
+
+	/**
+	 * Closes the application
+	 */
+	public close(): void {
+		if (this.manger) {
+			this.manger.close();
+			this.manger = null;
+		}
+	}
+
+	public get initialized(): boolean {
+		return this.manger != null;
+	}
+
+	public set logging(value: boolean) {
+		if (!this.manger) return;
+		this.manger.logging = value;
+	}
+
+	public get logging(): boolean {
+		return this.manger ? this.manger.logging : false;
+	}
 }

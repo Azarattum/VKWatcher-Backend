@@ -127,6 +127,47 @@ export default class Manager {
 			) || null
 		);
 	}
+
+	/**
+	 * Closes all managed components
+	 */
+	public close(): void {
+		if (this.logging) {
+			Utils.log("", LogType.DIVIDER);
+			Utils.log("Closing all components...");
+		}
+
+		let exceptions = 0;
+		for (const component of this.components) {
+			try {
+				component.close();
+				if (this.logging) {
+					Utils.log(`${component.name} closed!`, LogType.OK);
+				}
+			} catch (exception) {
+				if (this.logging) {
+					Utils.log(
+						`${component.name} closing exception:\n\t` +
+							`${exception.stack.replace(/\n/g, "\n\t")}`,
+						LogType.ERROR
+					);
+				}
+				exceptions++;
+			}
+		}
+
+		//Log result
+		if (!this.logging) return;
+		Utils.log("", LogType.DIVIDER);
+		if (exceptions) {
+			Utils.log(
+				`Stopped with ${exceptions} exceptions!`,
+				LogType.WARNING
+			);
+		} else {
+			Utils.log("Successfyly stopped!", LogType.OK);
+		}
+	}
 }
 
 /**
@@ -138,6 +179,9 @@ export interface IComponent {
 
 	/**Initializable entry */
 	initialize(...args: any[]): void;
+
+	/**Close component */
+	close(): void;
 }
 
 /**
