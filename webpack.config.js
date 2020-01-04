@@ -5,6 +5,7 @@
 const Path = require("path");
 const TerserPlugin = require("terser-webpack-plugin");
 const WebpackCleanupPlugin = require("webpack-cleanup-plugin");
+const NodeExternals = require("webpack-node-externals");
 
 const prod = process.argv.indexOf("-p") !== -1;
 
@@ -27,13 +28,12 @@ module.exports = {
 						}
 					}
 				],
-				include: Path.resolve(__dirname, "./src")
+				include: Path.resolve(__dirname, "./src"),
+				exclude: /node_modules/
 			}
 		]
 	},
-	externals: {
-		sqlite3: "commonjs sqlite3"
-	},
+	externals: [NodeExternals()],
 	resolve: {
 		extensions: [".ts", ".js"]
 	},
