@@ -20,7 +20,7 @@ export default class Database extends Service<"">() {
 		this.database.parallelize(() => {
 			//Create sessions table
 			let sql = "CREATE TABLE IF NOT EXISTS sessions (";
-			sql += "    user_id TEXT PRIMARY KEY,";
+			sql += "    user_id TEXT NOT NULL,";
 			sql += "    platform INTEGER NOT NULL,";
 			sql += "    time_from DATE NOT NULL,";
 			sql += "    time_to DATE NOT NULL";
@@ -71,6 +71,7 @@ export default class Database extends Service<"">() {
 	 * Safly stop and close the database
 	 */
 	public static close(): void {
+		super.close();
 		this.database.close();
 	}
 }

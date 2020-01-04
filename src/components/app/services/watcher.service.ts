@@ -58,7 +58,8 @@ export default class Watcher extends Service<
 	 * Stops the timer and closes the watcher
 	 */
 	public static close(): void {
-		if (!this.timer) return;
+		super.close();
+		if (this.timer == null) return;
 
 		clearInterval(this.timer);
 		this.timer = null;

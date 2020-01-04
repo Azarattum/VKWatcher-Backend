@@ -51,6 +51,7 @@ export default class Sessions extends Service<"sessionfound">() {
 	 * Close all sessions and emit leftover events
 	 */
 	public static close(): void {
+		super.close();
 		const now = new Date();
 
 		for (const session of Object.values(this.sessions)) {

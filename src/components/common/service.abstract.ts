@@ -59,8 +59,12 @@ export default function Service<T extends string>() {
 			}
 		}
 
+		/**
+		 * Closes the service
+		 */
 		public static close(): void {
 			//Close the service
+			this.callbacks = {};
 		}
 	}
 
