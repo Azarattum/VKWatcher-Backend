@@ -10,6 +10,9 @@ import Database from "./database.service";
 export default class Server extends Service<"">() {
 	private static server: HTTP.Server | null = null;
 
+	/**
+	 * Initializes API and static server
+	 */
 	public static async initialize(): Promise<void> {
 		const express = Express();
 		express.use(Express.static("public"));
@@ -24,6 +27,10 @@ export default class Server extends Service<"">() {
 		this.server = express.listen(80);
 	}
 
+	/**
+	 * Initializes API routes
+	 * @param express Express application object
+	 */
 	private static initRoutes(express: Express.Application): void {
 		//Get users
 		express.get("/api/users/get/:id", async (request, response) => {
@@ -58,6 +65,17 @@ export default class Server extends Service<"">() {
 				response.send(sessions.length == 1 ? sessions[0] : sessions);
 			}
 		);
+
+		//Get map
+		express.get("/api/sessions/map/:offset?", async (request, response) => {
+			const map = await Database.getMap(
+				Number.isInteger(+request.params.offset)
+					? +request.params.offset
+					: undefined
+			);
+
+			response.send(map);
+		});
 	}
 
 	/**

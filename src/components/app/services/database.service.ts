@@ -3,6 +3,7 @@ import FileSystem from "fs";
 import Service from "../../common/service.abstract";
 import User from "../models/user.class";
 import { ISession } from "./sessions.service";
+import DateUtils from "../../common/date.class";
 
 /**
  * Service to work with the database
@@ -10,6 +11,9 @@ import { ISession } from "./sessions.service";
 export default class Database extends Service<"">() {
 	private static database: Sqlite.Database | null = null;
 
+	/**
+	 * Initializes the datebase
+	 */
 	public static async initialize(): Promise<void> {
 		//Create directory for data
 		if (!FileSystem.existsSync("./data")) {
@@ -33,6 +37,15 @@ export default class Database extends Service<"">() {
 			sql = "CREATE TABLE IF NOT EXISTS users (";
 			sql += "    id TEXT PRIMARY KEY,";
 			sql += "    name TEXT NOT NULL";
+			sql += ");";
+			this.database.run(sql);
+
+			//Create map table
+			sql = "CREATE TABLE IF NOT EXISTS map (";
+			sql += "    user_id TEXT NOT NULL,";
+			sql += "    hour INTEGER NOT NULL,";
+			sql += "    time INTEGER NOT NULL,";
+			sql += "	PRIMARY KEY (user_id, hour)";
 			sql += ");";
 			this.database.run(sql);
 		});
@@ -61,12 +74,40 @@ export default class Database extends Service<"">() {
 		if (!this.database) return;
 		if (!session.to) return;
 
+		//Calculate all affected map periods
+		let hour =
+			DateUtils.getGlobalDay(session.from) * 24 + session.from.getHours();
+		let time = (+session.to - +session.from) / 1000;
+		let capacity =
+			(60 - session.from.getMinutes()) * 60 - session.from.getSeconds();
+
+		const periods: { [hour: number]: number } = {};
+		while (time > 0) {
+			periods[hour] = Math.min(time, capacity);
+			time -= capacity;
+
+			capacity = 60 * 60;
+			hour++;
+		}
+		const entries = Object.entries(periods);
+
+		//Update session map values
+		let sql = "INSERT INTO map(user_id, hour, time) VALUES ";
+		sql += entries.map(x => "(?,?,?)").join(",");
+		sql += "	ON CONFLICT(hour,user_id) DO UPDATE SET";
+		sql += "		time=excluded.time + map.time";
+
+		let data: any[] | {} = entries.reduce((a: any[], b: any[]) => {
+			return [...a, session.userId, ...b];
+		}, []);
+
+		this.database.run(sql, data);
+
 		//Insert new session into the table
-		let sql =
-			"INSERT INTO sessions (user_id, platform, time_from, time_to)";
+		sql = "INSERT INTO sessions (user_id, platform, time_from, time_to)";
 		sql += "VALUES($userId, $platform, $from, $to)";
 
-		this.database.run(sql, {
+		data = {
 			$userId: session.userId,
 			$platform: session.platform,
 			$from: session.from
@@ -77,9 +118,15 @@ export default class Database extends Service<"">() {
 				.toISOString()
 				.slice(0, 19)
 				.replace("T", " ")
-		});
+		};
+
+		this.database.run(sql, data);
 	}
 
+	/**
+	 * Returns user name(s) from the database
+	 * @param id User id
+	 */
 	public static async getNames(id: string = "all"): Promise<IUserName[]> {
 		return new Promise<IUserName[]>((resolve, reject) => {
 			if (!this.database) {
@@ -100,6 +147,10 @@ export default class Database extends Service<"">() {
 		});
 	}
 
+	/**
+	 * Returns user days from the database
+	 * @param id User id
+	 */
 	public static async getDays(id: string = "all"): Promise<IUserName[]> {
 		return new Promise<IUserName[]>((resolve, reject) => {
 			if (!this.database) {
@@ -128,6 +179,10 @@ export default class Database extends Service<"">() {
 		});
 	}
 
+	/**
+	 * Returns full user(s) information from the database
+	 * @param id User id
+	 */
 	public static async getUsers(id: string = "all"): Promise<IUserName[]> {
 		return new Promise<IUserName[]>((resolve, reject) => {
 			if (!this.database) {
@@ -156,6 +211,12 @@ export default class Database extends Service<"">() {
 		});
 	}
 
+	/**
+	 * Returns user's sessions from the database
+	 * @param userId User id
+	 * @param count Count of days
+	 * @param offset Offset of days
+	 */
 	public static async getSessions(
 		userId: string = "all",
 		count: number = 30,
@@ -201,7 +262,41 @@ export default class Database extends Service<"">() {
 		});
 	}
 
-	///GET SESSION MAP HERE
+	/**
+	 * Returns users density session map from the database
+	 * @param offset Offset of hours (including that hour)
+	 */
+	public static async getMap(offset: number = 0): Promise<ISessionMap> {
+		return new Promise<ISessionMap>((resolve, reject) => {
+			if (!this.database) {
+				return reject(new Error("Database is not initialized!"));
+			}
+
+			let sql = "SELECT";
+			sql += "    JSON_OBJECT(";
+			sql += "        id,";
+			sql += "        (SELECT";
+			sql += "            JSON_OBJECT(CAST(hour as TEXT), time)";
+			sql += "        FROM map WHERE user_id = id and hour >= $offset)";
+			sql += "    ) as data ";
+			sql += "FROM users";
+
+			this.database.all(sql, { $offset: offset }, (error, rows) => {
+				if (error) {
+					return reject(error);
+				}
+
+				const map = rows.reduce((a: {}, b: { data: string }) => {
+					const object = JSON.parse(b["data"]);
+					if (Object.values(object)[0] == null) return a;
+
+					return { ...a, ...object };
+				}, {});
+
+				return resolve(map);
+			});
+		});
+	}
 
 	/**
 	 * Safly stop and close the database
@@ -212,7 +307,17 @@ export default class Database extends Service<"">() {
 	}
 }
 
+/**
+ * Represents user's name info
+ */
 interface IUserName {
 	id: string;
 	name: string;
+}
+
+/**
+ * Represents users sessions density map
+ */
+interface ISessionMap {
+	[userId: string]: { [day: string]: number };
 }
