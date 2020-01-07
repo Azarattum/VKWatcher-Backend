@@ -1,6 +1,7 @@
 import HTTP from "http";
 import Express from "express";
 import BodyParser from "body-parser";
+import Compression from "compression";
 import Service from "../../common/service.abstract";
 import Database from "./database.service";
 
@@ -15,6 +16,7 @@ export default class Server extends Service<"">() {
 	 */
 	public static async initialize(): Promise<void> {
 		const express = Express();
+		express.use(Compression());
 		express.use(Express.static("public"));
 		express.use(BodyParser.json());
 		express.use(
@@ -22,7 +24,7 @@ export default class Server extends Service<"">() {
 				extended: true
 			})
 		);
-		this.initRoutes(express);
+		express.use(this.getRouter());
 
 		this.server = express.listen(80);
 	}
@@ -31,27 +33,29 @@ export default class Server extends Service<"">() {
 	 * Initializes API routes
 	 * @param express Express application object
 	 */
-	private static initRoutes(express: Express.Application): void {
+	private static getRouter(): Express.IRouter {
+		const router = Express.Router();
+
 		//Get users
-		express.get("/api/users/get/:id", async (request, response) => {
+		router.get("/api/users/get/:id", async (request, response) => {
 			const users = await Database.getUsers(request.params.id);
 			response.send(users.length == 1 ? users[0] : users);
 		});
 
 		//Get names
-		express.get("/api/users/name/:id", async (request, response) => {
+		router.get("/api/users/name/:id", async (request, response) => {
 			const names = await Database.getNames(request.params.id);
 			response.send(names.length == 1 ? names[0] : names);
 		});
 
 		//Get days
-		express.get("/api/users/days/:id", async (request, response) => {
+		router.get("/api/users/days/:id", async (request, response) => {
 			const days = await Database.getDays(request.params.id);
 			response.send(days.length == 1 ? days[0] : days);
 		});
 
 		//Get sessions
-		express.get(
+		router.get(
 			"/api/sessions/get/:userId/:count?/:offset?",
 			async (request, response) => {
 				const params = request.params;
@@ -67,7 +71,7 @@ export default class Server extends Service<"">() {
 		);
 
 		//Get map
-		express.get("/api/sessions/map/:offset?", async (request, response) => {
+		router.get("/api/sessions/map/:offset?", async (request, response) => {
 			const map = await Database.getMap(
 				Number.isInteger(+request.params.offset)
 					? +request.params.offset
@@ -76,6 +80,8 @@ export default class Server extends Service<"">() {
 
 			response.send(map);
 		});
+
+		return router;
 	}
 
 	/**
