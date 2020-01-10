@@ -38,3 +38,11 @@ npm install
 | ----------- | ------------------------------------------ |
 | **release** | Creates a production build of the project  |
 | build       | Creates a development build of the project |
+
+### Utils Scripts:
+  - **Converter**: converts old JSON session format to a new database
+
+    Run:
+    ```sh
+    ts-node ./src/utils/converter.ts <path_to_sessions.json_file>
+    ```

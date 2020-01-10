@@ -15,39 +15,70 @@ export default class Database extends Service<"">() {
 	 * Initializes the datebase
 	 */
 	public static async initialize(): Promise<void> {
-		//Create directory for data
-		if (!FileSystem.existsSync("./data")) {
-			FileSystem.mkdirSync("./data");
-		}
+		return new Promise<void>(resolve => {
+			//Create directory for data
+			if (!FileSystem.existsSync("./data")) {
+				FileSystem.mkdirSync("./data");
+			}
 
-		this.database = new Sqlite.Database("./data/sessions.db");
-		this.database.parallelize(() => {
-			if (!this.database) return;
+			const promises: Promise<void>[] = [];
+			this.database = new Sqlite.Database("./data/sessions.db");
+			this.database.parallelize(() => {
+				if (!this.database) return;
 
-			//Create sessions table
-			let sql = "CREATE TABLE IF NOT EXISTS sessions (";
-			sql += "    user_id TEXT NOT NULL,";
-			sql += "    platform INTEGER NOT NULL,";
-			sql += "    time_from DATE NOT NULL,";
-			sql += "    time_to DATE NOT NULL";
-			sql += ");";
-			this.database.run(sql);
+				//Create sessions table
+				let sql = "CREATE TABLE IF NOT EXISTS sessions (";
+				sql += "    user_id TEXT NOT NULL,";
+				sql += "    platform INTEGER NOT NULL,";
+				sql += "    time_from DATE NOT NULL,";
+				sql += "    time_to DATE NOT NULL,";
+				sql += "	UNIQUE (user_id, time_from)";
+				sql += "	ON CONFLICT REPLACE";
+				sql += ");";
+				promises.push(
+					new Promise<void>((resolve, reject) => {
+						if (!this.database) return;
+						this.database.run(sql, error => {
+							if (error) return reject(error);
+							return resolve();
+						});
+					})
+				);
 
-			//Create users table
-			sql = "CREATE TABLE IF NOT EXISTS users (";
-			sql += "    id TEXT PRIMARY KEY,";
-			sql += "    name TEXT NOT NULL";
-			sql += ");";
-			this.database.run(sql);
+				//Create users table
+				sql = "CREATE TABLE IF NOT EXISTS users (";
+				sql += "    id TEXT PRIMARY KEY,";
+				sql += "    name TEXT NOT NULL";
+				sql += ");";
+				promises.push(
+					new Promise<void>((resolve, reject) => {
+						if (!this.database) return;
+						this.database.run(sql, error => {
+							if (error) return reject(error);
+							return resolve();
+						});
+					})
+				);
 
-			//Create map table
-			sql = "CREATE TABLE IF NOT EXISTS map (";
-			sql += "    user_id TEXT NOT NULL,";
-			sql += "    hour INTEGER NOT NULL,";
-			sql += "    time INTEGER NOT NULL,";
-			sql += "	PRIMARY KEY (user_id, hour)";
-			sql += ");";
-			this.database.run(sql);
+				//Create map table
+				sql = "CREATE TABLE IF NOT EXISTS map (";
+				sql += "    user_id TEXT NOT NULL,";
+				sql += "    hour INTEGER NOT NULL,";
+				sql += "    time INTEGER NOT NULL,";
+				sql += "	PRIMARY KEY (user_id, hour)";
+				sql += ");";
+				promises.push(
+					new Promise<void>((resolve, reject) => {
+						if (!this.database) return;
+						this.database.run(sql, error => {
+							if (error) return reject(error);
+							return resolve();
+						});
+					})
+				);
+
+				Promise.all(promises).then(() => resolve());
+			});
 		});
 	}
 
@@ -56,14 +87,25 @@ export default class Database extends Service<"">() {
 	 * @param user User that was created
 	 */
 	public static async createUser(user: User): Promise<void> {
-		if (!this.database) return;
+		return new Promise<void>((resolve, reject) => {
+			if (!this.database) {
+				return reject(new Error("Database is not initialized!"));
+			}
 
-		//Insert new user into the table
-		let sql = "INSERT INTO users (id, name) ";
-		sql += "VALUES($id, $name) ";
-		sql += "EXCEPT ";
-		sql += "SELECT id, name FROM users";
-		this.database.run(sql, { $id: user.id, $name: user.name });
+			//Insert new user into the table
+			let sql = "INSERT INTO users (id, name) ";
+			sql += "VALUES($id, $name) ";
+			sql += "EXCEPT ";
+			sql += "SELECT id, name FROM users";
+			this.database.run(
+				sql,
+				{ $id: user.id, $name: user.name },
+				error => {
+					if (error) return reject(error);
+					return resolve();
+				}
+			);
+		});
 	}
 
 	/**
@@ -71,56 +113,85 @@ export default class Database extends Service<"">() {
 	 * @param user User that was created
 	 */
 	public static async addSession(session: ISession): Promise<void> {
-		if (!this.database) return;
-		if (!session.to) return;
+		return new Promise<void>((resolve, reject) => {
+			if (!this.database) {
+				return reject(new Error("Database is not initialized!"));
+			}
+			if (!session.to) {
+				return reject(new Error("Session.to is not defined!"));
+			}
 
-		//Calculate all affected map periods
-		let hour =
-			DateUtils.getGlobalDay(session.from) * 24 + session.from.getHours();
-		let time = (+session.to - +session.from) / 1000;
-		let capacity =
-			(60 - session.from.getMinutes()) * 60 - session.from.getSeconds();
+			const promises: Promise<void>[] = [];
 
-		const periods: { [hour: number]: number } = {};
-		while (time > 0) {
-			periods[hour] = Math.min(time, capacity);
-			time -= capacity;
+			//Calculate all affected map periods
+			let hour =
+				DateUtils.getGlobalDay(session.from) * 24 +
+				session.from.getHours();
+			let time = (+session.to - +session.from) / 1000;
+			let capacity =
+				(60 - session.from.getMinutes()) * 60 -
+				session.from.getSeconds();
 
-			capacity = 60 * 60;
-			hour++;
-		}
-		const entries = Object.entries(periods);
+			const periods: { [hour: number]: number } = {};
+			while (time > 0) {
+				periods[hour] = Math.min(time, capacity);
+				time -= capacity;
 
-		//Update session map values
-		let sql = "INSERT INTO map(user_id, hour, time) VALUES ";
-		sql += entries.map(x => "(?,?,?)").join(",");
-		sql += "	ON CONFLICT(hour,user_id) DO UPDATE SET";
-		sql += "		time=excluded.time + map.time";
+				capacity = 60 * 60;
+				hour++;
+			}
+			const entries = Object.entries(periods);
 
-		let data: any[] | {} = entries.reduce((a: any[], b: any[]) => {
-			return [...a, session.userId, ...b];
-		}, []);
+			//Update session map values
+			let sql = "INSERT INTO map(user_id, hour, time) VALUES ";
+			sql += entries.map(x => "(?,?,?)").join(",");
+			sql += "	ON CONFLICT(hour,user_id) DO UPDATE SET";
+			sql += "		time=excluded.time + map.time";
 
-		this.database.run(sql, data);
+			let data: any[] | {} = entries.reduce((a: any[], b: any[]) => {
+				return [...a, session.userId, ...b];
+			}, []);
 
-		//Insert new session into the table
-		sql = "INSERT INTO sessions (user_id, platform, time_from, time_to)";
-		sql += "VALUES($userId, $platform, $from, $to)";
+			promises.push(
+				new Promise<void>((resolve, reject) => {
+					if (!this.database) return;
+					this.database.run(sql, data, error => {
+						if (error) return reject(error);
+						return resolve();
+					});
+				})
+			);
 
-		data = {
-			$userId: session.userId,
-			$platform: session.platform,
-			$from: session.from
-				.toISOString()
-				.slice(0, 19)
-				.replace("T", " "),
-			$to: session.to
-				.toISOString()
-				.slice(0, 19)
-				.replace("T", " ")
-		};
+			//Insert new session into the table
+			sql = "INSERT INTO sessions";
+			sql += "	(user_id, platform, time_from, time_to)";
+			sql += "	VALUES($userId, $platform, $from, $to)";
 
-		this.database.run(sql, data);
+			data = {
+				$userId: session.userId,
+				$platform: session.platform,
+				$from: session.from
+					.toISOString()
+					.slice(0, 19)
+					.replace("T", " "),
+				$to: session.to
+					.toISOString()
+					.slice(0, 19)
+					.replace("T", " ")
+			};
+
+			promises.push(
+				new Promise<void>((resolve, reject) => {
+					if (!this.database) return;
+					this.database.run(sql, data, error => {
+						if (error) return reject(error);
+						return resolve();
+					});
+				})
+			);
+
+			Promise.all(promises).then(() => resolve());
+		});
 	}
 
 	/**
@@ -137,10 +208,7 @@ export default class Database extends Service<"">() {
 				"SELECT * FROM users WHERE id=$id or $id='all'",
 				{ $id: id },
 				(error, rows) => {
-					if (error) {
-						return reject(error);
-					}
-
+					if (error) return reject(error);
 					return resolve(rows);
 				}
 			);
@@ -170,10 +238,7 @@ export default class Database extends Service<"">() {
 			sql += "FROM users WHERE id = $id or $id='all'";
 
 			this.database.all(sql, { $id: id }, (error, rows) => {
-				if (error) {
-					return reject(error);
-				}
-
+				if (error) return reject(error);
 				return resolve(rows);
 			});
 		});
@@ -202,10 +267,7 @@ export default class Database extends Service<"">() {
 			sql += "FROM users WHERE id = $id or $id='all'";
 
 			this.database.all(sql, { $id: id }, (error, rows) => {
-				if (error) {
-					return reject(error);
-				}
-
+				if (error) return reject(error);
 				return resolve(rows);
 			});
 		});
@@ -252,9 +314,7 @@ export default class Database extends Service<"">() {
 				sql,
 				{ $userId: userId, $count: count, $offset: offset },
 				(error, rows) => {
-					if (error) {
-						return reject(error);
-					}
+					if (error) return reject(error);
 
 					return resolve(rows.map(x => JSON.parse(x.data)));
 				}
@@ -282,9 +342,7 @@ export default class Database extends Service<"">() {
 			sql += "FROM users";
 
 			this.database.all(sql, { $offset: offset }, (error, rows) => {
-				if (error) {
-					return reject(error);
-				}
+				if (error) return reject(error);
 
 				const map = rows.reduce((a: {}, b: { data: string }) => {
 					const object = JSON.parse(b["data"]);
@@ -299,11 +357,20 @@ export default class Database extends Service<"">() {
 	}
 
 	/**
-	 * Safly stop and close the database
+	 * Safely stop and close the database
 	 */
-	public static close(): void {
+	public static async close(): Promise<void> {
 		super.close();
-		if (this.database) this.database.close();
+		return new Promise<void>((resolve, reject) => {
+			if (this.database) {
+				this.database.close(error => {
+					if (error) return reject(error);
+					return resolve();
+				});
+			} else {
+				return resolve();
+			}
+		});
 	}
 }
 
