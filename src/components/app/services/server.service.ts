@@ -1,6 +1,5 @@
 import HTTP from "http";
 import Express from "express";
-import BodyParser from "body-parser";
 import Compression from "compression";
 import Service from "../../common/service.abstract";
 import Database from "./database.service";
@@ -18,12 +17,7 @@ export default class Server extends Service<"">() {
 		const express = Express();
 		express.use(Compression());
 		express.use(Express.static("public"));
-		express.use(BodyParser.json());
-		express.use(
-			BodyParser.urlencoded({
-				extended: true
-			})
-		);
+		express.use(Express.json());
 		express.use(this.getRouter());
 
 		this.server = express.listen(80);
