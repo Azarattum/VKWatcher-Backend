@@ -336,7 +336,7 @@ export default class Database extends Service<"">() {
 			sql += "    JSON_OBJECT(";
 			sql += "        id,";
 			sql += "        (SELECT";
-			sql += "            JSON_OBJECT(CAST(hour as TEXT), time)";
+			sql += "            JSON_GROUP_OBJECT(CAST(hour as TEXT), time)";
 			sql += "        FROM map WHERE user_id = id and hour >= $offset)";
 			sql += "    ) as data ";
 			sql += "FROM users";
