@@ -43,10 +43,13 @@ export default class App {
 			throw new Error("Initialize manager first!");
 		}
 
-		if (!process.env.VK_API_TOKEN) {
-			throw new Error("VK api token not found in .env file!");
+		let api = null;
+		if (this.manger.getComponent("Watcher")) {
+			if (!process.env.VK_API_TOKEN) {
+				throw new Error("VK api token not found in .env file!");
+			}
+			api = new Api(process.env.VK_API_TOKEN);
 		}
-		const api = new Api(process.env.VK_API_TOKEN);
 
 		return {
 			Watcher: [api]

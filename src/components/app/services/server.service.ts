@@ -1,6 +1,7 @@
 import HTTP from "http";
 import Express from "express";
 import Compression from "compression";
+import Cors from "cors";
 import Service from "../../common/service.abstract";
 import Database from "./database.service";
 
@@ -15,6 +16,7 @@ export default class Server extends Service<"">() {
 	 */
 	public static async initialize(): Promise<void> {
 		const express = Express();
+		express.use(Cors());
 		express.use(Compression());
 		express.use(Express.static("public"));
 		express.use(Express.json());
