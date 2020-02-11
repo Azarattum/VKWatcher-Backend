@@ -281,12 +281,15 @@ export default class Database extends Service<"">() {
 	 */
 	public static async getSessions(
 		userId: string = "all",
-		count: number = 30,
-		offset: number = 0
+		offset: number = 0,
+		count: number = Infinity
 	): Promise<IUserName[]> {
 		return new Promise<IUserName[]>((resolve, reject) => {
 			if (!this.database) {
 				return reject(new Error("Database is not initialized!"));
+			}
+			if (count == Infinity) {
+				count = Number.MAX_SAFE_INTEGER;
 			}
 
 			let sql = "SELECT";
@@ -298,13 +301,14 @@ export default class Database extends Service<"">() {
 			sql += "        'to', CAST(STRFTIME('%s', time_to) as INT)))";
 			sql += "    FROM sessions WHERE (user_id = id) AND (";
 			sql += "    ROUND(JULIANDAY(time_from)) < (";
-			sql += "    SELECT (ROUND(JULIANDAY(MIN(time_from)))";
-			sql += "    + $count + $offset)";
+			sql += "    SELECT (ROUND(JULIANDAY(MAX(time_to)))";
+			sql += "    - $offset)";
 			sql += "      FROM sessions as temp";
 			sql += "      WHERE temp.user_id = user_id";
 			sql += "    )) AND (";
 			sql += "    ROUND(JULIANDAY(time_to)) >= (";
-			sql += "      SELECT (ROUND(JULIANDAY(MIN(time_from))) + $offset)";
+			sql += "      SELECT (ROUND(JULIANDAY(MAX(time_to)))";
+			sql += "		- $offset - $count)";
 			sql += "      FROM sessions as temp";
 			sql += "      WHERE temp.user_id = user_id";
 			sql += "  )))) as data ";

@@ -52,15 +52,15 @@ export default class Server extends Service<"">() {
 
 		//Get sessions
 		router.get(
-			"/api/sessions/get/:userId/:count?/:offset?",
+			"/api/sessions/get/:userId/:offset?/:count?",
 			async (request, response) => {
 				const params = request.params;
 				const sessions = await Database.getSessions(
 					params.userId,
-					Number.isInteger(+params.count) ? +params.count : undefined,
 					Number.isInteger(+params.offset)
 						? +params.offset
-						: undefined
+						: undefined,
+					Number.isInteger(+params.count) ? +params.count : undefined
 				);
 				response.send(sessions.length == 1 ? sessions[0] : sessions);
 			}
