@@ -1,15 +1,18 @@
-import HTTP from "http";
 import Express from "express";
 import Compression from "compression";
 import Cors from "cors";
 import Service from "../../common/service.abstract";
 import Database from "./database.service";
+import Http from "http";
+import Https from "https";
+import FileSystem from "fs";
 
 /**
  * Web server service
  */
 export default class Server extends Service<"">() {
-	private static server: HTTP.Server | null = null;
+	private static httpServer: Http.Server | null = null;
+	private static httpsServer: Https.Server | null = null;
 
 	/**
 	 * Initializes API and static server
@@ -22,7 +25,23 @@ export default class Server extends Service<"">() {
 		express.use(Express.json());
 		express.use(this.getRouter());
 
-		this.server = express.listen(80);
+		this.httpServer = Http.createServer(express).listen(80);
+
+		//Also try to run https server
+		if (
+			FileSystem.existsSync("privkey.pem") &&
+			FileSystem.existsSync("fullchain.pem")
+		) {
+			const privateKey = FileSystem.readFileSync("privkey.pem", "utf8");
+			const certificate = FileSystem.readFileSync(
+				"fullchain.pem",
+				"utf8"
+			);
+			const credentials = { key: privateKey, cert: certificate };
+			this.httpsServer = Https.createServer(credentials, express).listen(
+				443
+			);
+		}
 	}
 
 	/**
@@ -85,8 +104,11 @@ export default class Server extends Service<"">() {
 	 */
 	public static close(): void {
 		super.close();
-		if (!this.server) return;
-
-		this.server.close();
+		if (this.httpServer) {
+			this.httpServer.close();
+		}
+		if (this.httpsServer) {
+			this.httpsServer.close();
+		}
 	}
 }
