@@ -301,13 +301,13 @@ export default class Database extends Service<"">() {
 			sql += "        'from', CAST(STRFTIME('%s', time_from) as INT),";
 			sql += "        'to', CAST(STRFTIME('%s', time_to) as INT)))";
 			sql += "    FROM sessions WHERE (user_id = id) AND (";
-			sql += "    ROUND(JULIANDAY(time_from)) < (";
+			sql += "    ROUND(JULIANDAY(time_from)) <= (";
 			sql += "    SELECT (ROUND(JULIANDAY(MAX(time_to)))";
 			sql += "    - $offset)";
 			sql += "      FROM sessions as temp";
 			sql += "      WHERE temp.user_id = user_id";
 			sql += "    )) AND (";
-			sql += "    ROUND(JULIANDAY(time_to)) >= (";
+			sql += "    ROUND(JULIANDAY(time_to)) > (";
 			sql += "      SELECT (ROUND(JULIANDAY(MAX(time_to)))";
 			sql += "		- $offset - $count)";
 			sql += "      FROM sessions as temp";
