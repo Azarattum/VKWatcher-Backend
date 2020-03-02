@@ -148,9 +148,10 @@ export default class Database extends Service<"">() {
 			sql += "	ON CONFLICT(hour,user_id) DO UPDATE SET";
 			sql += "		time=excluded.time + map.time";
 
-			let data: any[] | {} = entries.reduce((a: any[], b: any[]) => {
-				return [...a, session.userId, ...b];
-			}, []);
+			const data: any[] = [];
+			for (const entry of entries) {
+				data.push(session.userId, ...entry);
+			}
 
 			promises.push(
 				new Promise<void>((resolve, reject) => {
@@ -167,7 +168,7 @@ export default class Database extends Service<"">() {
 			sql += "	(user_id, platform, time_from, time_to)";
 			sql += "	VALUES($userId, $platform, $from, $to)";
 
-			data = {
+			const data2 = {
 				$userId: session.userId,
 				$platform: session.platform,
 				$from: session.from
@@ -183,7 +184,7 @@ export default class Database extends Service<"">() {
 			promises.push(
 				new Promise<void>((resolve, reject) => {
 					if (!this.database) return;
-					this.database.run(sql, data, error => {
+					this.database.run(sql, data2, error => {
 						if (error) return reject(error);
 						return resolve();
 					});
@@ -348,12 +349,13 @@ export default class Database extends Service<"">() {
 			this.database.all(sql, { $offset: offset }, (error, rows) => {
 				if (error) return reject(error);
 
-				const map = rows.reduce((a: {}, b: { data: string }) => {
-					const object = JSON.parse(b["data"]);
-					if (Object.values(object)[0] == null) return a;
-
-					return { ...a, ...object };
-				}, {});
+				const map: {} = {};
+				for (const row of rows) {
+					const object = JSON.parse(row["data"]);
+					if (Object.values(object)[0] != null) {
+						Object.assign(map, object);
+					}
+				}
 
 				return resolve(map);
 			});
