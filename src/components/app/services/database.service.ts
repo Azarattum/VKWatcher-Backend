@@ -95,8 +95,8 @@ export default class Database extends Service<"">() {
 			//Insert new user into the table
 			let sql = "INSERT INTO users (id, name) ";
 			sql += "VALUES($id, $name) ";
-			sql += "EXCEPT ";
-			sql += "SELECT id, name FROM users";
+			sql += "ON CONFLICT(id) DO UPDATE SET";
+			sql += "	name=$name";
 			this.database.run(
 				sql,
 				{ $id: user.id, $name: user.name },
