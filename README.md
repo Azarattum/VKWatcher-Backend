@@ -5,7 +5,7 @@ Back end web application for collecting data.
   - Watches your friends online activity
   - Creates sessions and saves them to the database
   - Serves your static frontend at *./public/*
-
+  - The data can be further analyzed in [VKWatcher-Frontend](https://github.com/Azarattum/VKWatcher-Frontend)
 ### Usage:
 1) Put your [VK API Token](https://vk.com/dev/authcode_flow_user) into .env file. You may use example.env as a reference. You need "friends" and "offline" permissions for your application.
 
